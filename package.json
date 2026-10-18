@@ -1,0 +1,14 @@
+{
+  "name": "jisr-alexa",
+  "version": "2.0.0",
+  "description": "Jisr · جسر: a bilingual (Arabic/English) Alexa+ MCP server that helps newcomers feel at home in a new US city.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "mcp:stdio": "node src/mcp.js",
+    "test": "node --test test/",
+    "snapshot": "node scripts/build-snapshot.mjs"
+  }
+}

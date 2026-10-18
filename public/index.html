@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jisr · جسر — Alexa+ simulator</title>
+<style>
+:root{--bg:#0b1020;--card:#141b33;--ac:#1fb6ff;--tx:#e8ecf8;--mu:#93a0c4}
+*{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,"Segoe UI","Noto Naskh Arabic",sans-serif;background:var(--bg);color:var(--tx)}
+header{padding:14px 20px;display:flex;gap:12px;align-items:center;border-bottom:1px solid #222b4d}
+header b{font-size:20px}.pill{font-size:12px;color:var(--mu);border:1px solid #2a3560;border-radius:99px;padding:2px 10px}
+main{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;padding:16px;max-width:1200px;margin:auto}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.echo{background:var(--card);border-radius:18px;padding:18px;min-height:470px;display:flex;flex-direction:column}
+.ring{width:84px;height:84px;border-radius:50%;margin:6px auto 12px;border:6px solid #233061;transition:.3s}
+.ring.on{border-color:var(--ac);box-shadow:0 0 30px var(--ac)}
+#chat{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.u,.a{padding:9px 13px;border-radius:14px;max-width:88%}.u{align-self:flex-end;background:#26325e}.a{align-self:flex-start;background:#0f2a3d;border:1px solid #1c4b6b}
+.a [dir=rtl],[dir=rtl]{text-align:right}
+form{display:flex;gap:8px;margin-top:10px}input{flex:1;padding:11px 13px;border-radius:12px;border:1px solid #2a3560;background:#0e1430;color:var(--tx);font-size:16px}
+button{padding:10px 14px;border-radius:12px;border:0;background:var(--ac);color:#04121c;font-weight:700;cursor:pointer}button.s{background:#26325e;color:var(--tx)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chips button{font-weight:500;font-size:13px;background:#1b2448;color:var(--tx)}
+.side{display:flex;flex-direction:column;gap:16px}.panel{background:var(--card);border-radius:18px;padding:14px}
+.panel h3{margin:0 0 8px;font-size:14px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+#screen .p{padding:8px 0;border-bottom:1px solid #222b4d}#screen .p:last-child{border:0}#screen small{color:var(--mu)}
+#trace{font:12px/1.4 ui-monospace,monospace;color:#9fd3ff;max-height:260px;overflow:auto;white-space:pre-wrap}
+a{color:var(--ac)}footer{color:var(--mu);font-size:12px;text-align:center;padding:10px}
+</style></head><body>
+<header><b>Jisr · جسر</b><span class="pill">Alexa+ experience simulator</span><span class="pill" id="conn">connecting to MCP…</span>
+<span style="flex:1"></span><button class="s" id="lang">العربية</button></header>
+<main>
+<section class="echo"><div class="ring" id="ring"></div><div id="chat"></div>
+<form id="f"><button type="button" class="s" id="mic" title="Talk">🎤</button><input id="q" autocomplete="off" placeholder='Try: "Alexa, where can I get shawarma in Salt Lake City?"'><button>Ask</button></form>
+<div class="chips" id="chips"></div></section>
+<aside class="side"><div class="panel"><h3>Echo Show screen</h3><div id="screen"><small>Results appear here.</small></div></div>
+<div class="panel"><h3>Live MCP traffic (Streamable HTTP · 2025-11-25)</h3><div id="trace"></div></div></aside>
+</main>
+<footer>This page is a real MCP client: it sends initialize, tools/list and tools/call to <code>/mcp</code>. Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Not affiliated with Amazon.</footer>
+<script type="module">
+const $ = (s) => document.querySelector(s);
+let L = 'en', sid = null, city = localStorage.jisrCity || 'Salt Lake City', tools = [];
+const CHIPS = { en: ['Where can I get shawarma in Salt Lake City?', 'Prayer times today', 'Find a mosque near me', 'Plan my first week in Houston', 'How do I say my son is sick?', 'Halal grocery in Dearborn'],
+  ar: ['وين ألاقي شاورما في سولت ليك سيتي؟', 'مواقيت الصلاة اليوم', 'أقرب مسجد', 'خطة أسبوعي الأول في هيوستن', 'كيف أقول ابني مريض؟', 'بقالة حلال في ديربورن'] };
+const CITY_AR = { 'سولت ليك سيتي': 'Salt Lake City', 'هيوستن': 'Houston', 'ديربورن': 'Dearborn', 'سياتل': 'Seattle', 'نيويورك': 'New York' };
+
+async function rpc(method, params, notify) {
+  const body = notify ? { jsonrpc: '2.0', method, params } : { jsonrpc: '2.0', id: Date.now(), method, params };
+  log('→ ' + JSON.stringify(body));
+  const t0 = performance.now();
+  const r = await fetch('/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'mcp-protocol-version': '2025-11-25', ...(sid ? { 'mcp-session-id': sid } : {}) }, body: JSON.stringify(body) });
+  if (r.headers.get('mcp-session-id')) sid = r.headers.get('mcp-session-id');
+  if (r.status === 202) { log('← 202 Accepted'); return null; }
+  const j = await r.json(); log(`← ${Math.round(performance.now() - t0)} ms ` + JSON.stringify(j).slice(0, 400));
+  if (j.error) throw new Error(j.error.message); return j.result;
+}
+function log(s) { const t = $('#trace'); t.textContent += s + '\n\n'; t.scrollTop = 1e9; }
+async function connect() {
+  const init = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'jisr-alexa-sim', version: '1.0' } });
+  await rpc('notifications/initialized', {}, true);
+  tools = (await rpc('tools/list', {})).tools;
+  $('#conn').textContent = `MCP ✓ ${init.serverInfo.name} · ${init.protocolVersion} · ${tools.length} tools`;
+}
+
+// Intent routing (the "Alexa+" brain of the simulator): picks a tool and slots from the utterance.
+function route(text) {
+  const t = text.toLowerCase();
+  for (const [ar, en] of Object.entries(CITY_AR)) if (text.includes(ar)) city = en;
+  const m = text.match(/\b(?:in|near|around)\s+([A-Z][a-zA-Z.]+(?:\s+[A-Z][a-zA-Z.]+){0,3})/);
+  if (m && !/^(me|my)$/i.test(m[1])) city = m[1].replace(/[?.!]+$/, '');
+  localStorage.jisrCity = city;
+  const lang = /[\u0600-\u06FF]/.test(text) ? 'ar' : L;
+  if (/(plan|week|first days|خطة|أسبوع|اسبوع)/.test(t)) return ['first_week_plan', { city, lang }];
+  if (/(prayer|salah|salat|adhan|fajr|maghrib|isha|صلاة|الصلاة|مواقيت|اذان|أذان)/.test(t)) return ['prayer_times', { city, lang }];
+  if (/(say|english|how do i|كيف أقول|كيف اقول|بالإنجليزي|بالانجليزي)/.test(t)) return ['say_it_in_english', { topic: text, lang }];
+  const need = /(mosque|masjid|مسجد|جامع)/.test(t) ? 'mosque' : /(grocery|market|butcher|بقالة|سوق|ملحمة|ملاحم)/.test(t) ? 'grocery'
+    : /(bakery|bread|knafeh|kunafa|مخبز|خبز|كنافة)/.test(t) ? 'bakery' : /(coffee|cafe|قهوة|مقهى|كافيه)/.test(t) ? 'coffee'
+    : /(library|class|مكتبة|دروس)/.test(t) ? 'library' : /(doctor|clinic|pharmacy|sick|طبيب|عيادة|صيدلية|مريض)/.test(t) ? 'clinic'
+    : /(halal|حلال)/.test(t) ? 'halal' : 'food';
+  return ['find_places_like_home', { city, need, lang, take: 3 }];
+}
+function bubble(cls, text) { const d = document.createElement('div'); d.className = cls; d.dir = /[\u0600-\u06FF]/.test(text) ? 'rtl' : 'ltr'; d.textContent = text; $('#chat').append(d); $('#chat').scrollTop = 1e9; }
+function speak(text) { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US'; $('#ring').classList.add('on'); u.onend = () => $('#ring').classList.remove('on'); speechSynthesis.speak(u); }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function show(name, r) {
+  const s = $('#screen'); s.dir = r.speech && /[\u0600-\u06FF]/.test(r.speech) ? 'rtl' : 'ltr';
+  const P = (p) => p ? `<b>${esc(p.name)}</b>${p.name_ar ? ` · ${esc(p.name_ar)}` : ''}<br><small>${[p.address, p.km != null && p.km + ' km', p.hours, p.halal && 'halal'].filter(Boolean).map(esc).join(' · ')}</small>${p.osm ? ` <a href="${esc(p.osm)}" target="_blank">map</a>` : ''}` : '<small>—</small>';
+  if (name === 'find_places_like_home') s.innerHTML = `<small>${esc(r.label)} · ${esc(r.city)} · ${esc(r.source)}</small>` + r.places.map((p) => `<div class="p">${P(p)}</div>`).join('');
+  else if (name === 'first_week_plan') s.innerHTML = r.days.map((d) => `<div class="p"><small>${esc(d.label)}</small><br>${P(d.place)}</div>`).join('');
+  else if (name === 'prayer_times') s.innerHTML = `<small>${esc(r.city)} · ${esc(r.timezone)} · ${esc(r.method)}</small>` + Object.entries(r.times).map(([k, v]) => `<div class="p"><b>${esc(k)}</b> ${esc(v)}</div>`).join('');
+  else s.innerHTML = r.en ? `<div class="p"><b>${esc(r.en)}</b></div><div class="p" dir="rtl">${esc(r.ar)}</div>` : esc(r.speech);
+}
+async function ask(text) {
+  if (!text.trim()) return; bubble('u', text); $('#q').value = '';
+  const [name, args] = route(text);
+  try { const r = await rpc('tools/call', { name, arguments: args }); const out = r.structuredContent || { speech: r.content?.[0]?.text };
+    bubble('a', r.isError ? r.content[0].text : out.speech); if (!r.isError) { show(name, out); speak(out.speech); } }
+  catch (e) { bubble('a', 'Sorry, ' + e.message); }
+}
+function chips() { $('#chips').innerHTML = ''; for (const c of CHIPS[L]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = c; b.onclick = () => ask(c); $('#chips').append(b); } }
+$('#f').onsubmit = (e) => { e.preventDefault(); ask($('#q').value); };
+$('#lang').onclick = () => { L = L === 'en' ? 'ar' : 'en'; $('#lang').textContent = L === 'en' ? 'العربية' : 'English'; document.documentElement.dir = L === 'ar' ? 'rtl' : 'ltr'; chips(); };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+$('#mic').onclick = () => { if (!SR) return bubble('a', 'Voice input needs Chrome or Edge. You can type instead.'); const r = new SR(); r.lang = L === 'ar' ? 'ar-SA' : 'en-US'; $('#ring').classList.add('on'); r.onresult = (e) => ask(e.results[0][0].transcript); r.onend = () => $('#ring').classList.remove('on'); r.start(); };
+chips(); connect().then(() => bubble('a', 'Marhaba! I\'m Jisr. Ask me where to find food from home, a mosque, prayer times, or how to say something in English.')).catch((e) => { $('#conn').textContent = 'MCP error: ' + e.message; });
+</script></body></html>
