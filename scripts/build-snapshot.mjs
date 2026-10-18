@@ -13,10 +13,12 @@ const UA = 'jisr-alexa/1.0 (+https://github.com/baroodstore1-ai/jisr-alexa)';
 const KEEP = /^(name|name:ar|cuisine|addr:housenumber|addr:street|opening_hours|phone|contact:phone|website|contact:website|diet:halal|amenity|shop|religion)$/;
 const out = { attribution: 'Data © OpenStreetMap contributors, ODbL 1.0', built: new Date().toISOString(), cities: {} };
 
+// Shops that rarely carry diet:halal tags but are clearly halal / Middle Eastern / international markets.
+const HOMEY = /halal|zabiha|arab|middle east|mediterranean|international|phoenicia/i;
 function classify(t) {
   const halal = /yes|only/.test(t['diet:halal'] || '');
   if (t.amenity === 'place_of_worship' && t.religion === 'muslim') return 'mosque';
-  if (/supermarket|convenience|butcher|deli/.test(t.shop || '') && halal) return 'grocery';
+  if (/supermarket|convenience|butcher|deli|greengrocer/.test(t.shop || '') && (halal || HOMEY.test(t.name || ''))) return 'grocery';
   if (/restaurant|fast_food|cafe/.test(t.amenity || '') && /lebanese|middle_eastern|arab|syrian|palestinian|iraqi|yemeni|egyptian|turkish|persian|falafel|kebab|shawarma/.test(t.cuisine || '')) return 'food';
   if (/restaurant|fast_food/.test(t.amenity || '') && halal) return 'halal';
   if (/bakery|pastry/.test(t.shop || '')) return 'bakery';
@@ -30,9 +32,10 @@ for (const [k, name, lat, lon, tz] of CITIES) {
   out.cities[k] = { name, lat, lon, tz, places: Object.fromEntries(Object.keys(NEEDS).map((n) => [n, []])) };
   // One query per city (Overpass is slow); 12 km radius keeps it small; sorted into needs locally.
   const qs = Object.entries(NEEDS).map(([n, { q }]) => `${q}["name"](around:12000,${lat},${lon})->.${n};.${n} out center tags 30;`).join('');
+  const groceryByName = `nwr["shop"~"supermarket|convenience|butcher|deli|greengrocer"]["name"~"${HOMEY.source}",i](around:20000,${lat},${lon});out center tags 30;`;
   for (let i = 0; i < 3; i++) {
     try {
-      const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(`[out:json][timeout:170];${qs}`), signal: AbortSignal.timeout(200000) });
+      const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(`[out:json][timeout:170];${qs}${groceryByName}`), signal: AbortSignal.timeout(200000) });
       if (!r.ok) throw new Error(r.status);
       for (const { type, id, lat: la, lon: lo, center, tags = {} } of (await r.json()).elements) {
         const n = classify(tags); if (!n || out.cities[k].places[n].length >= 25) continue;

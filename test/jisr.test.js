@@ -56,3 +56,10 @@ test('Streamable HTTP: session header, 202 for notifications, 405 on GET', async
   assert.equal((await post({ jsonrpc: '2.0', id: 3, method: 'ping' }, { 'mcp-session-id': 'bogus' })).status, 404);
   srv.close();
 });
+
+test('Arabic speech uses Arabic city names; Houston plan has a grocery day', async () => {
+  const p = await handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'prayer_times', arguments: { city: 'Houston', lang: 'ar' } } });
+  assert.match(p.result.content[0].text, /هيوستن/);
+  const w = await handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'first_week_plan', arguments: { city: 'Houston' } } });
+  assert.ok(w.result.structuredContent.days.every((d) => d.place), 'all 7 days have a real place');
+});

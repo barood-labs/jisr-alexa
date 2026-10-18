@@ -9,6 +9,11 @@ const SNAP = JSON.parse(readFileSync(fileURLToPath(new URL('../data/snapshot.jso
 
 const lang = (l) => (l === 'ar' ? 'ar' : 'en');
 const NEED_AR = { food: 'أكل شرق أوسطي', halal: 'أكل حلال', grocery: 'بقالة حلال', mosque: 'مسجد', bakery: 'مخبز', coffee: 'مقهى', library: 'مكتبة عامة', clinic: 'عيادة أو صيدلية' };
+// Arabic city names for the snapshot cities; Latin names inside Arabic sentences are wrapped in Unicode
+// isolates (FSI…PDI) so right-to-left screens keep the word order and punctuation intact.
+const CITY_AR = { saltlakecity: 'سولت ليك سيتي', houston: 'هيوستن', dearborn: 'ديربورن', seattle: 'سياتل', newyork: 'نيويورك' };
+const iso = (s) => (/[A-Za-z]/.test(s) ? `\u2068${s}\u2069` : s);
+const cityAr = (name) => CITY_AR[cityKey(name)] || iso(name);
 const PRAYER_AR = { fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
 
 function tzOffset(tz, date) {
@@ -51,9 +56,9 @@ export const tools = {
     l = lang(l); const r = await findPlaces(city, need, Math.min(+take || 3, 10));
     const top = r.places;
     const speech = !top.length
-      ? (l === 'ar' ? `لم أجد ${NEED_AR[r.need]} قرب ${r.city} في بيانات الخريطة.` : `I couldn't find a ${r.label} near ${r.city} in the map data.`)
+      ? (l === 'ar' ? `لم أجد ${NEED_AR[r.need]} قرب ${cityAr(r.city)} في بيانات الخريطة.` : `I couldn't find a ${r.label} near ${r.city} in the map data.`)
       : l === 'ar'
-        ? `أقرب ${NEED_AR[r.need]} في ${r.city}: ` + top.map((p) => `${p.name_ar || p.name}${p.km != null ? `، على بعد ${p.km} كم` : ''}`).join('؛ ') + '.'
+        ? `أقرب ${NEED_AR[r.need]} في ${cityAr(r.city)}: ` + top.map((p) => `${p.name_ar || iso(p.name)}${p.km != null ? `، على بعد ${p.km} كم` : ''}`).join('؛ ') + '.'
         : `Closest ${r.label} in ${r.city}: ` + top.map((p) => `${p.name}${p.km != null ? `, ${p.km} kilometers away` : ''}${p.halal && r.need === 'food' ? ', marked halal' : ''}`).join('; ') + '.';
     return { ...r, speech };
   },
@@ -66,7 +71,7 @@ export const tools = {
     const t = prayerTimes({ lat: c.lat, lon: c.lon, tz: off, date: now, method });
     const order = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
     const speech = l === 'ar'
-      ? `مواقيت الصلاة اليوم في ${c.name}: ` + order.map((k) => `${PRAYER_AR[k]} ${t[k]}`).join('، ') + '.'
+      ? `مواقيت الصلاة اليوم في ${cityAr(c.name)}: ` + order.map((k) => `${PRAYER_AR[k]} ${t[k]}`).join('، ') + '.'
       : `Prayer times today in ${c.name}: ` + order.map((k) => `${k[0].toUpperCase() + k.slice(1)} ${t[k]}`).join(', ') + '.';
     return { city: c.name, timezone: tz || `UTC${off >= 0 ? '+' : ''}${off} (estimated)`, method, times: t, speech };
   },
@@ -74,7 +79,7 @@ export const tools = {
   async say_it_in_english({ topic, lang: l }) {
     l = lang(l); const p = findPhrase(topic);
     if (!p) return { topics: Object.keys(PHRASES), speech: l === 'ar' ? 'أستطيع المساعدة في: الطبيب، الصيدلية، الحلال، الحافلة، المدرسة، الإيجار، الطوارئ، دروس الإنجليزية، العمل.' : 'I can help with: doctor, pharmacy, halal, bus, school, rent, emergency, English classes, and jobs.' };
-    return { ...p, speech: l === 'ar' ? `قل بالإنجليزية: ${p.en}` : `In English, say: "${p.en}". In Arabic, that is: ${p.ar}` };
+    return { ...p, speech: l === 'ar' ? `قل بالإنجليزية: ${iso(p.en)}` : `In English, say: "${p.en}". In Arabic, that is: ${p.ar}` };
   },
 
   async first_week_plan({ city, lang: l }) {
@@ -87,8 +92,8 @@ export const tools = {
     }
     const named = days.filter((d) => d.place);
     const speech = l === 'ar'
-      ? `خطة أسبوعك الأول في ${city}: ` + named.map((d) => `${d.label.split(':')[0]}، ${d.place.name_ar || d.place.name}`).join('؛ ') + '. أرسلت التفاصيل إلى الشاشة.'
-      : `Here's your first week in ${city}: ` + named.map((d) => `${d.label.split(':')[0]}, ${d.place.name}`).join('; ') + '. Details are on screen.';
+      ? `خطة أسبوعك الأول في ${cityAr(city)}: ` + named.map((d) => `${d.label.split(':')[0]}، ${d.place.name_ar || iso(d.place.name)}`).join('؛ ') + '. أرسلت التفاصيل إلى الشاشة.'
+      : `Here's your first week in ${city}: ` + named.map((d) => `${d.label.split(':')[0]}, ${d.place.name.replace(/[.!?]+$/, '')}`).join('; ') + '. Details are on screen.';
     return { city, days, attribution: 'Data © OpenStreetMap contributors (ODbL)', speech };
   },
 };

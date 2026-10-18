@@ -43,5 +43,5 @@ Node.js, Model Context Protocol (2025-11-25, Streamable HTTP), OpenStreetMap (Ov
 
 ## Links
 - Code: https://github.com/baroodstore1-ai/jisr-alexa (MIT)
-- Live MCP endpoint + simulator: <LIVE_URL>/mcp and <LIVE_URL>/
+- Live MCP endpoint + simulator: https://jisr-alexa.onrender.com/mcp and https://jisr-alexa.onrender.com/
 - Demo video: <YOUTUBE_URL>
