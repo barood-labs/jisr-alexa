@@ -40,6 +40,25 @@ Node.js, Model Context Protocol (2025-11-25, Streamable HTTP), OpenStreetMap (Ov
 - **What worked well:** The QuickStart's requirement list is concrete (Streamable HTTP, 401/PRM rules, <500 ms) and easy to test against; saying account linking is optional for non-personal tools saved time.
 - **What needs work:** Individual setup pages don't say the MCP Toolkit / Web Simulator are partner-only, so it took time to learn we couldn't test on a real Alexa+. A public sandbox or validator for MCP add-ons (even text-only) would help hackathon builders a lot. Arabic locale availability for Alexa+ isn't documented.
 - **Onboarding:** Zero to a working MCP server was under an hour from the spec; the blocker was only the gated Alexa+ tooling.
+- **Would we build with these again? Yes.** MCP made one server usable by Alexa+ and by every other MCP client, and voice is the right interface for the families Jisr serves. We would build the account-linked version as soon as the Alexa+ MCP Toolkit opens up.
+
+## Friction log
+1. **Task:** test the MCP server inside a real Alexa+ device or the Web Simulator. **Steps:** followed the Alexa+ MCP QuickStart, then looked for Toolkit/Simulator access. **Expected:** a self-serve sandbox. **Actual:** the tools are partner-only, and individual pages don't say so. **Severity:** high. **Workaround:** built our own simulator that is a real MCP client. **Suggestion:** say "partner-only" on every setup page and offer a public, text-only validator for MCP add-ons.
+2. **Task:** support Arabic speakers. **Steps:** searched the Alexa+ docs for supported locales. **Expected:** a locale list for add-ons. **Actual:** Arabic availability isn't documented. **Severity:** medium. **Workaround:** every tool returns both English and Arabic `speech`. **Suggestion:** publish the locale matrix for Alexa+ add-ons.
+3. **Task:** meet the <500 ms latency budget with live OpenStreetMap data. **Steps:** called public Overpass servers. **Expected:** sub-second replies. **Actual:** 5–30 s at busy times. **Severity:** medium (third-party). **Workaround:** bundled ODbL snapshot plus a short live-query budget. **Suggestion:** document recommended timeout and retry behavior for slow tool backends.
+
+## Feature requests
+- **Public MCP add-on validator / sandbox** (Critical): lets builders without partner access prove their server works with Alexa+.
+- **Arabic locale for Alexa+ add-ons** (Important): Jisr's main users speak Arabic first.
+- **MCP Apps / visual cards on Echo Show for add-ons** (Nice-to-have): show the place list and prayer table on screen.
+
+## Track, mini challenges and project timing
+- **Primary track:** Alexa+ (self-hosted MCP server, spec 2025-11-25, Streamable HTTP), shown through our simulated Alexa+ experience.
+- **Mini challenges:** none entered.
+- **New project:** Jisr was created during the Submission Period (October 2026). All code in the repo was written for this hackathon.
+
+## Testing instructions
+No login needed. Open https://jisr-alexa.onrender.com/ (free hosting may take ~30 s to wake), tap a suggestion chip or type a question, and toggle العربية for Arabic. Or point any MCP client (e.g. MCP Inspector) at https://jisr-alexa.onrender.com/mcp over Streamable HTTP. Locally: `git clone https://github.com/baroodstore1-ai/jisr-alexa && cd jisr-alexa && npm start && npm test` (Node 20+, no dependencies).
 
 ## Links
 - Code: https://github.com/baroodstore1-ai/jisr-alexa (MIT)
