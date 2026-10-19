@@ -38,7 +38,11 @@ test('prayer times are in a sane order', () => {
 
 test('phrasebook and unknown tool', async () => {
   const r = await handle({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'say_it_in_english', arguments: { topic: 'my son is sick' } } });
-  assert.match(r.result.structuredContent.en, /doctor/);
+  assert.match(r.result.structuredContent.en, /My son is sick/);
+  const ar = await handle({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'say_it_in_english', arguments: { topic: 'كيف أقول ابني مريض؟', lang: 'ar' } } });
+  assert.match(ar.result.structuredContent.en, /My son is sick/);
+  const d = await handle({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'say_it_in_english', arguments: { topic: 'I feel sick' } } });
+  assert.match(d.result.structuredContent.en, /doctor/);
   const e = await handle({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'nope' } });
   assert.equal(e.error.code, -32602);
 });

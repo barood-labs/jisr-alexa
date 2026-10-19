@@ -72,6 +72,18 @@ Simulator (public/index.html) ─┘                                      ├─
                                                                        └─ phrases.js EN↔AR phrasebook
 ```
 
+## Support the project
+
+Jisr is free and open source, and it will stay that way. If it helps your family, community group or
+resettlement agency, you can support it:
+
+- **Star the repo** and open issues or PRs, especially new phrasebook entries, cities and languages.
+- **GitHub Sponsors:** not enabled yet. A Sponsor button will appear at the top of this repo once it is.
+- **Solana (SOL / USDC on Solana), receive only:** `EkyuoGVxpdf2rjywLh7TUyvkkerj15f4MXnsj2mpKpvA`
+
+Please only send from a wallet you control. We will never DM you asking for funds, keys or seed phrases, and there is
+no Jisr token: any coin using the name is not ours.
+
 ## Credits & license
 
 MIT (see `LICENSE`). Place data © OpenStreetMap contributors, ODbL 1.0. Not affiliated with or endorsed by Amazon;

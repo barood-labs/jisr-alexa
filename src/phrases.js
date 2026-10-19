@@ -1,5 +1,6 @@
 // Hand-checked survival phrasebook for Arabic-speaking newcomers (EN <-> AR), voice-friendly.
 export const PHRASES = {
+  sick_child: { en: 'My son is sick. He needs to see a doctor today.', ar: 'ابني مريض. يحتاج أن يرى طبيبًا اليوم.' },
   doctor: { en: 'I need to see a doctor. Is there a clinic nearby?', ar: 'أحتاج أن أرى طبيبًا. هل توجد عيادة قريبة؟' },
   pharmacy: { en: 'Where is the nearest pharmacy?', ar: 'أين أقرب صيدلية؟' },
   halal: { en: 'Is this halal? Does it contain pork or alcohol?', ar: 'هل هذا حلال؟ هل يحتوي على لحم خنزير أو كحول؟' },
@@ -13,7 +14,8 @@ export const PHRASES = {
 };
 export function findPhrase(topic = '') {
   const t = topic.toLowerCase();
-  const key = Object.keys(PHRASES).find((k) => t.includes(k)) ||
+  const kid = /(son|daughter|child|kid|baby|ابني|ابنتي|بنتي|طفلي|ولدي)/.test(t) && /(sick|ill|fever|مريض|مريضة|حرارة)/.test(t);
+  const key = (kid && 'sick_child') || Object.keys(PHRASES).find((k) => t.includes(k)) ||
     (/(sick|ill|hospital|مريض|طبيب)/.test(t) && 'doctor') || (/(medicine|دواء|صيدل)/.test(t) && 'pharmacy') ||
     (/(food|pork|حلال)/.test(t) && 'halal') || (/(apartment|house|شقة|ايجار)/.test(t) && 'rent') ||
     (/(work|hire|عمل|وظيف)/.test(t) && 'job') || (/(class|learn|انجليزي)/.test(t) && 'english') || null;
